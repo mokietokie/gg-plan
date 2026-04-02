@@ -18,18 +18,24 @@ next-app/
 │   │   └── signup/
 │   ├── (protected)/    # 인증 필요 페이지 (Header 포함)
 │   │   ├── layout.tsx
-│   │   └── todos/
-│   │       ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
-│   │       ├── actions.ts     # Server Actions: CRUD + getCategories
-│   │       └── _components/   # 투두 관련 클라이언트 컴포넌트
-│   │           ├── todo-create-form.tsx  # 빠른 투두 추가
-│   │           ├── todo-item.tsx         # 단일 투두 (토글+인라인편집+삭제)
-│   │           ├── todo-list.tsx         # 투두 목록 + useOptimistic
-│   │           ├── date-navigator.tsx    # 날짜/월 이동
-│   │           ├── view-tabs.tsx         # 일간/주간/월간 탭
-│   │           ├── weekly-view.tsx       # 7일 수직 스택 뷰
-│   │           ├── monthly-view.tsx      # 월간 캘린더 그리드
-│   │           └── category-input.tsx    # 카테고리 입력 + 추천
+│   │   ├── todos/
+│   │   │   ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
+│   │   │   ├── actions.ts     # Server Actions: CRUD + getCategories
+│   │   │   └── _components/   # 투두 관련 클라이언트 컴포넌트
+│   │   │       ├── todo-create-form.tsx  # 빠른 투두 추가
+│   │   │       ├── todo-item.tsx         # 단일 투두 (토글+인라인편집+삭제)
+│   │   │       ├── todo-list.tsx         # 투두 목록 + useOptimistic
+│   │   │       ├── date-navigator.tsx    # 날짜/월 이동
+│   │   │       ├── view-tabs.tsx         # 일간/주간/월간 탭
+│   │   │       ├── weekly-view.tsx       # 7일 수평 스택 뷰
+│   │   │       ├── monthly-view.tsx      # 월간 캘린더 그리드
+│   │   │       └── category-input.tsx    # 카테고리 입력 + 추천
+│   │   └── report/
+│   │       ├── page.tsx       # Server Component: 주간 투두 쿼리 + 보고서 생성
+│   │       └── _components/   # 보고서 관련 클라이언트 컴포넌트
+│   │           ├── week-selector.tsx     # 주차 이동 (일~토 7일 단위)
+│   │           ├── report-preview.tsx    # 보고서 미리보기 Card
+│   │           └── report-actions.tsx    # 클립보드 복사 + 파일 다운로드
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
@@ -40,6 +46,7 @@ next-app/
 │   │   ├── client.ts   # 브라우저(클라이언트 컴포넌트)용
 │   │   └── server.ts   # 서버 컴포넌트/API용
 │   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간 범위 등)
+│   ├── report.ts       # 주간보고서 생성 순수 함수 (generateReport)
 │   └── utils.ts        # shadcn/ui 유틸
 ├── hooks/              # 커스텀 훅
 ├── types/
@@ -75,6 +82,14 @@ next-app/
 - 카테고리: 자유 텍스트 입력 + 기존 카테고리 Popover 추천
 - 월간 뷰: 캘린더 그리드 (월요일 시작, 6주 고정), 날짜별 투두 개수/완료율 바, 날짜 클릭 시 일간 뷰로 이동
 - 정렬: 미완료 먼저 → 완료 아래로
+
+## Report Feature (주간보고서)
+- 페이지: /report — URL searchParams로 주차 선택 (?date=YYYY-MM-DD)
+- 보고서 생성: `lib/report.ts` — 순수 함수 `generateReport()`, DB 저장 없이 매번 실시간 생성
+- 생성 규칙: category별 그룹핑(미지정→"기타"), 완료/미완료 분리, 다음 주 투두 자동 포함
+- 주차 단위: 일~토 (getWeekRange), 7일 단위 이전/다음 이동
+- 내보내기: 클립보드 복사 + .txt 파일 다운로드
+- 데이터 패칭: Server Component에서 이번 주 + 다음 주 투두 병렬 쿼리 (Promise.all)
 
 ## 주의사항
 - [RISK] 주간보고서 자동 생성: 규칙 기반 집계로 시작. category별 그룹핑 + 완료/미완료 분류. 실제 제출 가능 품질인지 초기 피드백 필수
