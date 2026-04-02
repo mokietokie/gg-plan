@@ -10,17 +10,29 @@ GG-PLAN — 투두만 쓰면 주간보고서가 자동으로 만들어지는 직
 ## Project Structure
 ```
 next-app/
-├── app/              # App Router 페이지 & 레이아웃
-├── components/       # UI 컴포넌트
-│   └── ui/           # shadcn/ui 컴포넌트
+├── app/
+│   ├── (auth)/         # 로그인/회원가입 (최소 레이아웃, 헤더 없음)
+│   │   ├── actions.ts  # signup/login/logout 서버 액션
+│   │   ├── layout.tsx  # 중앙 정렬 카드 레이아웃
+│   │   ├── login/
+│   │   └── signup/
+│   ├── (protected)/    # 인증 필요 페이지 (Header 포함)
+│   │   ├── layout.tsx
+│   │   └── todos/
+│   ├── layout.tsx      # 루트 레이아웃
+│   └── page.tsx        # 랜딩 페이지
+├── components/
+│   ├── header.tsx      # 공통 헤더 (로고+네비+로그아웃)
+│   └── ui/             # shadcn/ui 컴포넌트
 ├── lib/
 │   ├── supabase/
-│   │   ├── client.ts # 브라우저(클라이언트 컴포넌트)용
-│   │   └── server.ts # 서버 컴포넌트/API용
-│   └── utils.ts      # shadcn/ui 유틸
-├── hooks/            # 커스텀 훅
-├── types/            # TypeScript 타입 정의
-└── public/           # 정적 파일
+│   │   ├── client.ts   # 브라우저(클라이언트 컴포넌트)용
+│   │   └── server.ts   # 서버 컴포넌트/API용
+│   └── utils.ts        # shadcn/ui 유틸
+├── hooks/              # 커스텀 훅
+├── types/              # TypeScript 타입 정의
+├── middleware.ts       # Supabase 세션 갱신 + 라우트 보호
+└── public/             # 정적 파일
 ```
 
 ## Rules
@@ -29,6 +41,14 @@ next-app/
 - 컴포넌트는 /components/{feature}/
 - 타입은 /types/
 - Supabase 클라이언트는 /lib/supabase/ (client.ts, server.ts 분리)
+
+## Auth
+- Supabase Auth (이메일+비밀번호 자체 인증)
+- 이메일 확인(Confirm email): MVP에서 비활성화
+- 세션 관리: middleware.ts에서 쿠키 기반 세션 갱신
+- 라우트 보호: 미인증→/login 리디렉트, 인증→/todos 리디렉트
+- Route Groups: (auth) = 로그인/회원가입, (protected) = 인증 필요 페이지
+- 서버 액션: app/(auth)/actions.ts (signup, login, logout)
 
 ## DB Schema
 - `todos` 테이블: id(uuid), user_id(uuid), title(text), description(text), category(text), date(date), is_completed(boolean), completed_at(timestamptz), created_at(timestamptz)
