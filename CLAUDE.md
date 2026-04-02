@@ -19,6 +19,17 @@ next-app/
 │   ├── (protected)/    # 인증 필요 페이지 (Header 포함)
 │   │   ├── layout.tsx
 │   │   └── todos/
+│   │       ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
+│   │       ├── actions.ts     # Server Actions: CRUD + getCategories
+│   │       └── _components/   # 투두 관련 클라이언트 컴포넌트
+│   │           ├── todo-create-form.tsx  # 빠른 투두 추가
+│   │           ├── todo-item.tsx         # 단일 투두 (토글+인라인편집+삭제)
+│   │           ├── todo-list.tsx         # 투두 목록 + useOptimistic
+│   │           ├── date-navigator.tsx    # 날짜/월 이동
+│   │           ├── view-tabs.tsx         # 일간/주간/월간 탭
+│   │           ├── weekly-view.tsx       # 7일 수직 스택 뷰
+│   │           ├── monthly-view.tsx      # 월간 캘린더 그리드
+│   │           └── category-input.tsx    # 카테고리 입력 + 추천
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
@@ -28,9 +39,11 @@ next-app/
 │   ├── supabase/
 │   │   ├── client.ts   # 브라우저(클라이언트 컴포넌트)용
 │   │   └── server.ts   # 서버 컴포넌트/API용
+│   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간 범위 등)
 │   └── utils.ts        # shadcn/ui 유틸
 ├── hooks/              # 커스텀 훅
-├── types/              # TypeScript 타입 정의
+├── types/
+│   └── todo.ts         # Todo, ActionResult 타입
 ├── middleware.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
 ```
@@ -53,6 +66,15 @@ next-app/
 ## DB Schema
 - `todos` 테이블: id(uuid), user_id(uuid), title(text), description(text), category(text), date(date), is_completed(boolean), completed_at(timestamptz), created_at(timestamptz)
 - RLS 활성화: 본인 데이터만 CRUD 가능
+
+## Todos Feature
+- 뷰 모드: 일간(daily), 주간(weekly), 월간(monthly) — URL searchParams로 관리 (?date=&view=)
+- Server Actions: createTodo, toggleTodo, updateTodo, deleteTodo, getCategories (app/(protected)/todos/actions.ts)
+- 낙관적 업데이트: React 19 useOptimistic (toggle, delete 즉시 반영)
+- 인라인 편집: 제목 클릭 → Input 전환, Enter 저장, Esc 취소
+- 카테고리: 자유 텍스트 입력 + 기존 카테고리 Popover 추천
+- 월간 뷰: 캘린더 그리드 (월요일 시작, 6주 고정), 날짜별 투두 개수/완료율 바, 날짜 클릭 시 일간 뷰로 이동
+- 정렬: 미완료 먼저 → 완료 아래로
 
 ## 주의사항
 - [RISK] 주간보고서 자동 생성: 규칙 기반 집계로 시작. category별 그룹핑 + 완료/미완료 분류. 실제 제출 가능 품질인지 초기 피드백 필수

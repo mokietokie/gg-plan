@@ -1,8 +1,106 @@
-export default function TodosPage() {
+import { createClient } from "@/lib/supabase/server";
+import {
+  formatDateISO,
+  getWeekRange,
+  getMonthRange,
+  getMonthCalendarDays,
+  parseDate,
+} from "@/lib/date";
+import { TodoCreateForm } from "./_components/todo-create-form";
+import { TodoList } from "./_components/todo-list";
+import { DateNavigator } from "./_components/date-navigator";
+import { ViewTabs } from "./_components/view-tabs";
+import { WeeklyView } from "./_components/weekly-view";
+import { MonthlyView } from "./_components/monthly-view";
+import { getCategories } from "./actions";
+import type { Todo } from "@/types/todo";
+
+type ViewType = "daily" | "weekly" | "monthly";
+
+export default async function TodosPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ date?: string; view?: string }>;
+}) {
+  const params = await searchParams;
+  const dateStr = params.date ?? formatDateISO(new Date());
+  const view: ViewType = (["daily", "weekly", "monthly"] as const).includes(
+    params.view as ViewType
+  )
+    ? (params.view as ViewType)
+    : "daily";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return null;
+
+  const current = parseDate(dateStr);
+
+  // 데이터 범위 결정
+  let startDate: string;
+  let endDate: string;
+
+  if (view === "monthly") {
+    // 캘린더 그리드 전체 범위 (이전/다음 달 일부 포함)
+    const calendarDays = getMonthCalendarDays(
+      current.getFullYear(),
+      current.getMonth()
+    );
+    startDate = formatDateISO(calendarDays[0]);
+    endDate = formatDateISO(calendarDays[calendarDays.length - 1]);
+  } else if (view === "weekly") {
+    const { start, end } = getWeekRange(current);
+    startDate = formatDateISO(start);
+    endDate = formatDateISO(end);
+  } else {
+    startDate = dateStr;
+    endDate = dateStr;
+  }
+
+  const { data: todos = [] } = await supabase
+    .from("todos")
+    .select("*")
+    .eq("user_id", user.id)
+    .gte("date", startDate)
+    .lte("date", endDate)
+    .order("is_completed", { ascending: true })
+    .order("created_at", { ascending: true })
+    .returns<Todo[]>();
+
+  const categories = await getCategories();
+
   return (
-    <div>
-      <h1 className="text-2xl font-bold">투두</h1>
-      <p className="text-muted-foreground mt-2">Phase 2에서 구현 예정</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <DateNavigator date={dateStr} view={view} />
+        <ViewTabs currentView={view} date={dateStr} />
+      </div>
+
+      {view === "daily" && (
+        <div className="space-y-4">
+          <TodoCreateForm date={dateStr} categories={categories} />
+          <TodoList todos={todos ?? []} categories={categories} />
+        </div>
+      )}
+
+      {view === "weekly" && (
+        <WeeklyView
+          weekStart={formatDateISO(getWeekRange(current).start)}
+          todos={todos ?? []}
+          categories={categories}
+        />
+      )}
+
+      {view === "monthly" && (
+        <MonthlyView
+          year={current.getFullYear()}
+          month={current.getMonth()}
+          todos={todos ?? []}
+        />
+      )}
     </div>
   );
 }
