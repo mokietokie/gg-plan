@@ -89,19 +89,8 @@ next-app/
 - 통계 집계: `lib/stats.ts` — 순수 함수 5개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
 - 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend, computeTopCategories
 - 데이터 패칭: Server Component에서 현재 기간 + 이전 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
-- 차트 구성: 완료율(AreaChart 스파크라인), 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)
-- 기간 선택: 주간(getWeekRange) / 월간(getMonthRange) / 기간 선택(커스텀 from~to)
-- 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
-- chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)
-- null 카테고리: "미지정"으로 표시 (report.ts의 "기타"와 구분)
-
-## Stats Feature (통계 대시보드)
-- 페이지: /stats — URL searchParams로 기간 선택 (?period=weekly|monthly|custom&date=YYYY-MM-DD&from=&to=)
-- 차트 라이브러리: Recharts (shadcn/ui chart 래퍼) — `components/ui/chart.tsx`
-- 통계 집계: `lib/stats.ts` — 순수 함수 5개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
-- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend, computeTopCategories
-- 데이터 패칭: Server Component에서 현재 기간 + 이전 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
-- 차트 구성: 완료율(AreaChart 스파크라인), 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)
+- 메트릭 카드: 완료율(AreaChart 스파크라인) | 총 투두 | 완료 | 미완료
+- 차트 구성: 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)
 - 기간 선택: 주간(getWeekRange) / 월간(getMonthRange) / 기간 선택(커스텀 from~to)
 - 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
 - chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)

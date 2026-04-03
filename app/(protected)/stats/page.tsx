@@ -121,9 +121,6 @@ export default async function StatsPage({
   const weeklyTrend = computeWeeklyTrend(todos, start, end);
   const topCategories = computeTopCategories(todos);
 
-  const mainCategory =
-    categoryDistribution.length > 0 ? categoryDistribution[0].category : "-";
-
   const isEmpty = todos.length === 0;
 
   return (
@@ -151,7 +148,7 @@ export default async function StatsPage({
             />
             <StatCard title="총 투두" value={`${completionRate.total}건`} />
             <StatCard title="완료" value={`${completionRate.completed}건`} />
-            <StatCard title="주요 카테고리" value={mainCategory} />
+            <StatCard title="미완료" value={`${completionRate.total - completionRate.completed}건`} />
           </div>
 
           {/* 차트 2열 */}
