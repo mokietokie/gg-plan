@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import type { Todo } from "@/types/todo";
 
 const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
+const GRID_COLS = "0.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr";
 const MAX_VISIBLE_TODOS = 3;
 
 export function MonthlyView({
@@ -36,13 +37,14 @@ export function MonthlyView({
     <div>
       {/* 요일 헤더 */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
+        style={{ display: "grid", gridTemplateColumns: GRID_COLS }}
         className="border-b"
       >
-        {DAY_HEADERS.map((day) => (
+        {DAY_HEADERS.map((day, i) => (
           <div
             key={day}
             className="py-2 text-center text-xs font-medium text-muted-foreground"
+            style={i === 0 || i === 6 ? { color: "#f472b6" } : undefined}
           >
             {day}
           </div>
@@ -51,7 +53,8 @@ export function MonthlyView({
 
       {/* 날짜 그리드 */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
+        style={{ display: "grid", gridTemplateColumns: GRID_COLS }}
+        className="border-l"
       >
         {days.map((date) => {
           const dateStr = formatDateISO(date);
@@ -66,7 +69,7 @@ export function MonthlyView({
               type="button"
               onClick={() => handleDateClick(date)}
               className={cn(
-                "border-b border-r p-1.5 text-left transition-colors hover:bg-muted/50",
+                "min-w-0 overflow-hidden border-b border-r p-1.5 text-left transition-colors hover:bg-muted/50",
                 !isCurrentMonth && "bg-muted/20"
               )}
               style={{ minHeight: "110px" }}
@@ -79,6 +82,11 @@ export function MonthlyView({
                     today && "bg-primary text-primary-foreground font-bold",
                     !isCurrentMonth && !today && "text-muted-foreground"
                   )}
+                  style={
+                    !today && (date.getDay() === 0 || date.getDay() === 6)
+                      ? { color: "#f472b6" }
+                      : undefined
+                  }
                 >
                   {date.getDate()}
                 </span>

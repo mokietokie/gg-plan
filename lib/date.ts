@@ -68,6 +68,17 @@ export function getMonthCalendarDays(year: number, month: number): Date[] {
   return Array.from({ length: 42 }, (_, i) => addDays(start, i));
 }
 
+/** 범위 내 모든 날짜 배열 반환 */
+export function eachDayOfRange(start: Date, end: Date): Date[] {
+  const days: Date[] = [];
+  let current = new Date(start);
+  while (current <= end) {
+    days.push(new Date(current));
+    current = addDays(current, 1);
+  }
+  return days;
+}
+
 /** 월의 첫날과 마지막날 */
 export function getMonthRange(year: number, month: number): { start: Date; end: Date } {
   const start = new Date(year, month, 1);

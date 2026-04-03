@@ -29,6 +29,12 @@ export async function Header() {
             >
               주간보고서
             </Link>
+            <Link
+              href="/stats"
+              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+            >
+              통계
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

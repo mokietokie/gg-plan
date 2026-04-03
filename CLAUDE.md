@@ -22,35 +22,27 @@ next-app/
 │   │   │   ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
 │   │   │   ├── actions.ts     # Server Actions: CRUD + getCategories
 │   │   │   └── _components/   # 투두 관련 클라이언트 컴포넌트
-│   │   │       ├── todo-create-form.tsx  # 빠른 투두 추가
-│   │   │       ├── todo-item.tsx         # 단일 투두 (토글+인라인편집+삭제)
-│   │   │       ├── todo-list.tsx         # 투두 목록 + useOptimistic
-│   │   │       ├── date-navigator.tsx    # 날짜/월 이동
-│   │   │       ├── view-tabs.tsx         # 일간/주간/월간 탭
-│   │   │       ├── weekly-view.tsx       # 7일 수평 스택 뷰
-│   │   │       ├── monthly-view.tsx      # 월간 캘린더 그리드
-│   │   │       └── category-input.tsx    # 카테고리 입력 + 추천
-│   │   └── report/
-│   │       ├── page.tsx       # Server Component: 주간 투두 쿼리 + 보고서 생성
-│   │       └── _components/   # 보고서 관련 클라이언트 컴포넌트
-│   │           ├── week-selector.tsx     # 주차 이동 (일~토 7일 단위)
-│   │           ├── report-preview.tsx    # 보고서 미리보기 Card
-│   │           └── report-actions.tsx    # 클립보드 복사 + 파일 다운로드
+│   │   ├── report/
+│   │   │   ├── page.tsx       # Server Component: 주간 투두 쿼리 + 보고서 생성
+│   │   │   └── _components/   # 보고서 관련 클라이언트 컴포넌트
+│   │   └── stats/
+│   │       ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계
+│   │       └── _components/   # 통계 관련 클라이언트 컴포넌트
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
 │   ├── header.tsx      # 공통 헤더 (로고+네비+로그아웃)
 │   └── ui/             # shadcn/ui 컴포넌트
 ├── lib/
-│   ├── supabase/
-│   │   ├── client.ts   # 브라우저(클라이언트 컴포넌트)용
-│   │   └── server.ts   # 서버 컴포넌트/API용
-│   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간 범위 등)
+│   ├── supabase/       # client.ts (브라우저용), server.ts (서버용)
+│   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간 범위, eachDayOfRange 등)
 │   ├── report.ts       # 주간보고서 생성 순수 함수 (generateReport)
+│   ├── stats.ts        # 통계 집계 순수 함수 5개
 │   └── utils.ts        # shadcn/ui 유틸
 ├── hooks/              # 커스텀 훅
 ├── types/
-│   └── todo.ts         # Todo, ActionResult 타입
+│   ├── todo.ts         # Todo, ActionResult
+│   └── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData, TopCategoryData
 ├── middleware.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
 ```
@@ -91,11 +83,41 @@ next-app/
 - 내보내기: 클립보드 복사 + .txt 파일 다운로드
 - 데이터 패칭: Server Component에서 이번 주 + 다음 주 투두 병렬 쿼리 (Promise.all)
 
+## Stats Feature (통계 대시보드)
+- 페이지: /stats — URL searchParams로 기간 선택 (?period=weekly|monthly|custom&date=YYYY-MM-DD&from=&to=)
+- 차트 라이브러리: Recharts (shadcn/ui chart 래퍼) — `components/ui/chart.tsx`
+- 통계 집계: `lib/stats.ts` — 순수 함수 5개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
+- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend, computeTopCategories
+- 데이터 패칭: Server Component에서 현재 기간 + 이전 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
+- 차트 구성: 완료율(AreaChart 스파크라인), 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)
+- 기간 선택: 주간(getWeekRange) / 월간(getMonthRange) / 기간 선택(커스텀 from~to)
+- 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
+- chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)
+- null 카테고리: "미지정"으로 표시 (report.ts의 "기타"와 구분)
+
+## Stats Feature (통계 대시보드)
+- 페이지: /stats — URL searchParams로 기간 선택 (?period=weekly|monthly|custom&date=YYYY-MM-DD&from=&to=)
+- 차트 라이브러리: Recharts (shadcn/ui chart 래퍼) — `components/ui/chart.tsx`
+- 통계 집계: `lib/stats.ts` — 순수 함수 5개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
+- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend, computeTopCategories
+- 데이터 패칭: Server Component에서 현재 기간 + 이전 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
+- 차트 구성: 완료율(AreaChart 스파크라인), 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)
+- 기간 선택: 주간(getWeekRange) / 월간(getMonthRange) / 기간 선택(커스텀 from~to)
+- 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
+- chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)
+- null 카테고리: "미지정"으로 표시 (report.ts의 "기타"와 구분)
+
 ## 주의사항
 - [RISK] 주간보고서 자동 생성: 규칙 기반 집계로 시작. category별 그룹핑 + 완료/미완료 분류. 실제 제출 가능 품질인지 초기 피드백 필수
 - [RISK] 대기업 사내망 접근: 외부 SaaS 차단 가능성. MVP는 개인 디바이스 기준으로 검증
 - [RISK] 투두 입력 습관: 20~50대 전연령대가 수용 가능하도록 입력 허들 최소화. UI 최대한 단순하게
 - [RISK] 주간보고서 작성 소요시간: 실제로 얼마나 걸리는지 팀원 확인 필요 (절약 효과 검증)
+
+## Environment Variables
+- 환경변수 파일: `.env.local`
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase 프로젝트 URL (클라이언트+서버 공용)
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public 키 (클라이언트+서버 공용)
+- 사용처: `lib/supabase/client.ts`, `lib/supabase/server.ts`, `middleware.ts`
 
 ## 금지사항
 - any 타입 금지

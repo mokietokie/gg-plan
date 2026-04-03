@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import type { Todo } from "@/types/todo";
 
 const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
+const GRID_COLS = "0.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr";
 const MAX_VISIBLE_TODOS = 5;
 
 export function WeeklyView({
@@ -40,14 +41,21 @@ export function WeeklyView({
     <div>
       {/* 요일 + 날짜 헤더 */}
       <div
-        style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)" }}
+        style={{ display: "grid", gridTemplateColumns: GRID_COLS }}
         className="border-b"
       >
-        {days.map(({ date, dateStr }) => {
+        {days.map(({ date, dateStr }, i) => {
           const today = isToday(date);
+          const isWeekend = i === 0 || i === 6;
           return (
             <div key={dateStr} className="py-2 text-center">
-              <div className="text-xs text-muted-foreground">
+              <div
+                className={cn(
+                  "text-xs",
+                  isWeekend ? "" : "text-muted-foreground"
+                )}
+                style={isWeekend ? { color: "#f472b6" } : undefined}
+              >
                 {getDayOfWeekKR(date)}
               </div>
               <span
@@ -55,6 +63,7 @@ export function WeeklyView({
                   "inline-flex h-7 w-7 items-center justify-center rounded-full text-sm font-medium",
                   today && "bg-primary text-primary-foreground font-bold"
                 )}
+                style={!today && isWeekend ? { color: "#f472b6" } : undefined}
               >
                 {date.getDate()}
               </span>
@@ -67,7 +76,7 @@ export function WeeklyView({
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(7, 1fr)",
+          gridTemplateColumns: GRID_COLS,
           minHeight: "480px",
         }}
       >
@@ -79,7 +88,7 @@ export function WeeklyView({
               key={dateStr}
               type="button"
               onClick={() => handleDateClick(date)}
-              className="border-r border-b p-1.5 text-left transition-colors hover:bg-muted/50 last:border-r-0"
+              className="min-w-0 overflow-hidden border-r border-b p-1.5 text-left transition-colors hover:bg-muted/50 last:border-r-0"
             >
               <div className="space-y-0.5">
                 {dayTodos.slice(0, MAX_VISIBLE_TODOS).map((todo) => (

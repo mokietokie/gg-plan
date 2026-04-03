@@ -98,6 +98,7 @@ export function TodoItem({
               compact
             />
           </div>
+          <button type="submit" hidden />
         </form>
       ) : (
         <button
