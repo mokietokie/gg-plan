@@ -10,6 +10,20 @@ export type Todo = {
   created_at: string;
 };
 
+export type UserCategory = {
+  id: string;
+  user_id: string;
+  name: string;
+  sort_order: number;
+  created_at: string;
+};
+
 export type ActionResult = {
+  error: string;
+} | null;
+
+export type CreateTodoResult = {
+  id: string;
+} | {
   error: string;
 } | null;

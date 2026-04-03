@@ -3,31 +3,45 @@
 import { useActionState, useRef, useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Plus } from "lucide-react";
-import { createTodo } from "../actions";
+import { createTodo, deleteTodo } from "../actions";
 import { CategoryInput } from "./category-input";
-import type { ActionResult } from "@/types/todo";
+import { CategoryManager } from "./category-manager";
+import type { CreateTodoResult, UserCategory } from "@/types/todo";
 import { toast } from "sonner";
 
 export function TodoCreateForm({
   date,
   categories = [],
+  userCategories = [],
   compact,
 }: {
   date: string;
   categories?: string[];
+  userCategories?: UserCategory[];
   compact?: boolean;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState("");
   const [state, formAction, isPending] = useActionState(
-    async (_prev: ActionResult, formData: FormData) => {
+    async (_prev: CreateTodoResult, formData: FormData) => {
       const result = await createTodo(null, formData);
-      if (!result) {
+      if (result && "id" in result) {
         formRef.current?.reset();
         setCategory("");
         inputRef.current?.focus();
+        toast("업무가 등록되었습니다.", {
+          action: {
+            label: "실행취소",
+            onClick: () => {
+              const fd = new FormData();
+              fd.set("id", result.id);
+              deleteTodo(fd);
+            },
+          },
+        });
       }
       return result;
     },
@@ -35,7 +49,7 @@ export function TodoCreateForm({
   );
 
   useEffect(() => {
-    if (state?.error) {
+    if (state && "error" in state) {
       toast.error(state.error);
     }
   }, [state]);
@@ -62,12 +76,36 @@ export function TodoCreateForm({
         </Button>
       </div>
       {!compact && (
-        <div className="max-w-[200px]">
-          <CategoryInput
-            categories={categories}
-            value={category}
-            onChange={setCategory}
-          />
+        <div className="flex items-center gap-2">
+          <div className="w-[180px] shrink-0">
+            <CategoryInput
+              categories={categories}
+              userCategories={userCategories}
+              value={category}
+              onChange={setCategory}
+            />
+          </div>
+          <CategoryManager userCategories={userCategories} />
+          {userCategories.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {userCategories.map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() =>
+                    setCategory(category === cat.name ? "" : cat.name)
+                  }
+                >
+                  <Badge
+                    variant={category === cat.name ? "default" : "secondary"}
+                    className="text-xs cursor-pointer transition-colors"
+                  >
+                    {cat.name}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </form>

@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult } from "@/types/todo";
+import type { ActionResult, CreateTodoResult, Todo, UserCategory } from "@/types/todo";
 
 export async function createTodo(
-  _prevState: ActionResult,
+  _prevState: CreateTodoResult,
   formData: FormData
-): Promise<ActionResult> {
+): Promise<CreateTodoResult> {
   const title = (formData.get("title") as string)?.trim();
   const date = formData.get("date") as string;
   const category = (formData.get("category") as string)?.trim() || null;
@@ -29,20 +29,24 @@ export async function createTodo(
     return { error: "로그인이 필요합니다." };
   }
 
-  const { error } = await supabase.from("todos").insert({
-    user_id: user.id,
-    title,
-    date,
-    category,
-    is_completed: false,
-  });
+  const { data, error } = await supabase
+    .from("todos")
+    .insert({
+      user_id: user.id,
+      title,
+      date,
+      category,
+      is_completed: false,
+    })
+    .select("id")
+    .single();
 
-  if (error) {
+  if (error || !data) {
     return { error: "투두 생성에 실패했습니다." };
   }
 
   revalidatePath("/todos");
-  return null;
+  return { id: data.id };
 }
 
 export async function toggleTodo(formData: FormData): Promise<void> {
@@ -103,7 +107,7 @@ export async function updateTodo(
   return null;
 }
 
-export async function deleteTodo(formData: FormData): Promise<void> {
+export async function deleteTodo(formData: FormData): Promise<Todo | null> {
   const id = formData.get("id") as string;
 
   const supabase = await createClient();
@@ -111,9 +115,39 @@ export async function deleteTodo(formData: FormData): Promise<void> {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) return;
+  if (!user) return null;
+
+  const { data } = await supabase
+    .from("todos")
+    .select("*")
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .single<Todo>();
 
   await supabase.from("todos").delete().eq("id", id).eq("user_id", user.id);
+
+  revalidatePath("/todos");
+  return data;
+}
+
+export async function restoreTodo(todo: Omit<Todo, "created_at">): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user || user.id !== todo.user_id) return;
+
+  await supabase.from("todos").insert({
+    id: todo.id,
+    user_id: todo.user_id,
+    title: todo.title,
+    description: todo.description,
+    category: todo.category,
+    date: todo.date,
+    is_completed: todo.is_completed,
+    completed_at: todo.completed_at,
+  });
 
   revalidatePath("/todos");
 }
@@ -126,15 +160,97 @@ export async function getCategories(): Promise<string[]> {
 
   if (!user) return [];
 
+  const [{ data: todoData }, { data: presets }] = await Promise.all([
+    supabase
+      .from("todos")
+      .select("category")
+      .eq("user_id", user.id)
+      .not("category", "is", null)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("user_categories")
+      .select("name")
+      .eq("user_id", user.id)
+      .order("sort_order"),
+  ]);
+
+  const presetNames = (presets ?? []).map((p) => p.name as string);
+  const todoCategories = [
+    ...new Set((todoData ?? []).map((d) => d.category as string)),
+  ];
+  const merged = [...new Set([...presetNames, ...todoCategories])];
+  return merged.slice(0, 20);
+}
+
+export async function getUserCategories(): Promise<UserCategory[]> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return [];
+
   const { data } = await supabase
-    .from("todos")
-    .select("category")
+    .from("user_categories")
+    .select("*")
     .eq("user_id", user.id)
-    .not("category", "is", null)
-    .order("created_at", { ascending: false });
+    .order("sort_order")
+    .order("created_at")
+    .returns<UserCategory[]>();
 
-  if (!data) return [];
+  return data ?? [];
+}
 
-  const unique = [...new Set(data.map((d) => d.category as string))];
-  return unique.slice(0, 10);
+export async function addUserCategory(
+  _prevState: ActionResult,
+  formData: FormData
+): Promise<ActionResult> {
+  const name = (formData.get("name") as string)?.trim();
+
+  if (!name) {
+    return { error: "카테고리 이름을 입력해주세요." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  const { error } = await supabase.from("user_categories").insert({
+    user_id: user.id,
+    name,
+  });
+
+  if (error) {
+    if (error.code === "23505") {
+      return { error: "이미 등록된 카테고리입니다." };
+    }
+    return { error: "카테고리 추가에 실패했습니다." };
+  }
+
+  revalidatePath("/todos");
+  return null;
+}
+
+export async function deleteUserCategory(formData: FormData): Promise<void> {
+  const id = formData.get("id") as string;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return;
+
+  await supabase
+    .from("user_categories")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  revalidatePath("/todos");
 }

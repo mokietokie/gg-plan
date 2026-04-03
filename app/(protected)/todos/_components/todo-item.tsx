@@ -1,24 +1,26 @@
 "use client";
 
-import { useState, useRef, useEffect, useActionState } from "react";
+import { useState, useRef, useEffect, useActionState, useTransition } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
-import { toggleTodo, updateTodo, deleteTodo } from "../actions";
+import { toggleTodo, updateTodo, deleteTodo, restoreTodo } from "../actions";
 import { CategoryInput } from "./category-input";
-import type { Todo, ActionResult } from "@/types/todo";
+import type { Todo, ActionResult, UserCategory } from "@/types/todo";
 import { toast } from "sonner";
 
 export function TodoItem({
   todo,
   categories = [],
+  userCategories = [],
   onOptimisticToggle,
   onOptimisticDelete,
 }: {
   todo: Todo;
   categories?: string[];
+  userCategories?: UserCategory[];
   onOptimisticToggle: (id: string) => void;
   onOptimisticDelete: (id: string) => void;
 }) {
@@ -26,6 +28,7 @@ export function TodoItem({
   const [editTitle, setEditTitle] = useState(todo.title);
   const [editCategory, setEditCategory] = useState(todo.category ?? "");
   const editRef = useRef<HTMLInputElement>(null);
+  const [, startTransition] = useTransition();
 
   const [updateState, updateAction] = useActionState(
     async (_prev: ActionResult, formData: FormData) => {
@@ -56,10 +59,22 @@ export function TodoItem({
   }
 
   function handleDelete() {
-    onOptimisticDelete(todo.id);
-    const fd = new FormData();
-    fd.set("id", todo.id);
-    deleteTodo(fd);
+    startTransition(async () => {
+      onOptimisticDelete(todo.id);
+      const fd = new FormData();
+      fd.set("id", todo.id);
+      const deleted = await deleteTodo(fd);
+      if (deleted) {
+        toast("업무가 삭제되었습니다.", {
+          action: {
+            label: "실행취소",
+            onClick: () => {
+              restoreTodo(deleted);
+            },
+          },
+        });
+      }
+    });
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -93,6 +108,7 @@ export function TodoItem({
           <div className="w-[140px] shrink-0">
             <CategoryInput
               categories={categories}
+              userCategories={userCategories}
               value={editCategory}
               onChange={setEditCategory}
               compact

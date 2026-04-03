@@ -10,14 +10,17 @@ import {
 } from "@/components/ui/popover";
 import { Tag } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import type { UserCategory } from "@/types/todo";
 
 export function CategoryInput({
   categories,
+  userCategories = [],
   value,
   onChange,
   compact,
 }: {
   categories: string[];
+  userCategories?: UserCategory[];
   value: string;
   onChange: (value: string) => void;
   compact?: boolean;

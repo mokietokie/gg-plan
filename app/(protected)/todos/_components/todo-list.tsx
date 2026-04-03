@@ -2,7 +2,7 @@
 
 import { useOptimistic } from "react";
 import { TodoItem } from "./todo-item";
-import type { Todo } from "@/types/todo";
+import type { Todo, UserCategory } from "@/types/todo";
 
 type OptimisticAction =
   | { type: "toggle"; id: string }
@@ -11,9 +11,11 @@ type OptimisticAction =
 export function TodoList({
   todos,
   categories = [],
+  userCategories = [],
 }: {
   todos: Todo[];
   categories?: string[];
+  userCategories?: UserCategory[];
 }) {
   const [optimisticTodos, addOptimistic] = useOptimistic(
     todos,
@@ -54,6 +56,7 @@ export function TodoList({
           key={todo.id}
           todo={todo}
           categories={categories}
+          userCategories={userCategories}
           onOptimisticToggle={(id) =>
             addOptimistic({ type: "toggle", id })
           }

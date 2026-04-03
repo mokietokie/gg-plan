@@ -12,7 +12,7 @@ import { DateNavigator } from "./_components/date-navigator";
 import { ViewTabs } from "./_components/view-tabs";
 import { WeeklyView } from "./_components/weekly-view";
 import { MonthlyView } from "./_components/monthly-view";
-import { getCategories } from "./actions";
+import { getCategories, getUserCategories } from "./actions";
 import type { Todo } from "@/types/todo";
 
 type ViewType = "daily" | "weekly" | "monthly";
@@ -70,7 +70,10 @@ export default async function TodosPage({
     .order("created_at", { ascending: true })
     .returns<Todo[]>();
 
-  const categories = await getCategories();
+  const [categories, userCategories] = await Promise.all([
+    getCategories(),
+    getUserCategories(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -80,9 +83,11 @@ export default async function TodosPage({
       </div>
 
       {view === "daily" && (
-        <div className="space-y-4">
-          <TodoCreateForm date={dateStr} categories={categories} />
-          <TodoList todos={todos ?? []} categories={categories} />
+        <div className="space-y-6">
+          <div className="rounded-lg border bg-card p-4 shadow-sm">
+            <TodoCreateForm date={dateStr} categories={categories} userCategories={userCategories} />
+          </div>
+          <TodoList todos={todos ?? []} categories={categories} userCategories={userCategories} />
         </div>
       )}
 
