@@ -20,7 +20,7 @@ next-app/
 │   │   ├── layout.tsx
 │   │   ├── todos/
 │   │   │   ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
-│   │   │   ├── actions.ts     # Server Actions: CRUD + getCategories
+│   │   │   ├── actions.ts     # Server Actions: CRUD + 카테고리 관리 + 실행취소(restore)
 │   │   │   └── _components/   # 투두 관련 클라이언트 컴포넌트
 │   │   ├── report/
 │   │   │   ├── page.tsx       # Server Component: 주간 투두 쿼리 + 보고서 생성
@@ -41,7 +41,7 @@ next-app/
 │   └── utils.ts        # shadcn/ui 유틸
 ├── hooks/              # 커스텀 훅
 ├── types/
-│   ├── todo.ts         # Todo, ActionResult
+│   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
 │   └── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData, TopCategoryData
 ├── middleware.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
@@ -64,14 +64,22 @@ next-app/
 
 ## DB Schema
 - `todos` 테이블: id(uuid), user_id(uuid), title(text), description(text), category(text), date(date), is_completed(boolean), completed_at(timestamptz), created_at(timestamptz)
-- RLS 활성화: 본인 데이터만 CRUD 가능
+- `user_categories` 테이블: id(uuid), user_id(uuid), name(text), sort_order(integer), created_at(timestamptz) — UNIQUE(user_id, name)
+- RLS 활성화: 두 테이블 모두 본인 데이터만 CRUD 가능
 
 ## Todos Feature
 - 뷰 모드: 일간(daily), 주간(weekly), 월간(monthly) — URL searchParams로 관리 (?date=&view=)
-- Server Actions: createTodo, toggleTodo, updateTodo, deleteTodo, getCategories (app/(protected)/todos/actions.ts)
-- 낙관적 업데이트: React 19 useOptimistic (toggle, delete 즉시 반영)
+- Server Actions (app/(protected)/todos/actions.ts):
+  - Todo CRUD: createTodo(→CreateTodoResult), toggleTodo, updateTodo, deleteTodo(→Todo|null), restoreTodo
+  - 카테고리 관리: getCategories, getUserCategories, addUserCategory, deleteUserCategory
+- 낙관적 업데이트: React 19 useOptimistic (toggle, delete, 카테고리 추가/삭제 즉시 반영)
 - 인라인 편집: 제목 클릭 → Input 전환, Enter 저장, Esc 취소
-- 카테고리: 자유 텍스트 입력 + 기존 카테고리 Popover 추천
+- 카테고리 프리셋: user_categories 테이블에 자주 쓰는 카테고리 사전 등록, 클릭으로 적용/해제 (Badge 토글)
+- 카테고리 입력: 자유 텍스트 + Popover 자동완성 (프리셋 + 기존 투두 카테고리 병합, 최대 20개)
+- 카테고리 관리: 톱니(Settings) 버튼 → Popover에서 프리셋 추가/삭제 (CategoryManager 컴포넌트)
+- 실행취소(Undo): 등록/삭제 시 bottom-right 토스트 + "실행취소" 버튼 (sonner action)
+  - 등록 취소: createTodo가 반환한 id로 deleteTodo 호출
+  - 삭제 취소: deleteTodo가 반환한 Todo 데이터로 restoreTodo 호출
 - 월간 뷰: 캘린더 그리드 (월요일 시작, 6주 고정), 날짜별 투두 개수/완료율 바, 날짜 클릭 시 일간 뷰로 이동
 - 정렬: 미완료 먼저 → 완료 아래로
 
