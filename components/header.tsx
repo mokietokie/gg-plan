@@ -21,7 +21,7 @@ export async function Header() {
               href="/todos"
               className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
-              투두
+              To-Do
             </Link>
             <Link
               href="/report"
@@ -33,7 +33,7 @@ export async function Header() {
               href="/stats"
               className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
-              통계
+              대쉬보드
             </Link>
           </nav>
         </div>

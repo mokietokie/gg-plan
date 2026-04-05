@@ -19,12 +19,12 @@ export default async function LandingPage() {
       {/* Hero */}
       <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
         <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
-          투두만 쓰면
+          오늘 할 일만 쓰면
           <br />
-          <span className="text-primary">주간보고서</span>가 자동으로
+          <span className="text-primary">일정관리가</span>가 자동으로
         </h1>
         <p className="text-muted-foreground mt-4 max-w-md text-lg">
-          매일 할 일만 기록하세요. 주간업무보고서는 GG-PLAN이 만들어드립니다.
+          Grow Your Goal!
         </p>
         <div className="mt-8 flex gap-3">
           <Button asChild size="lg">
@@ -39,16 +39,16 @@ export default async function LandingPage() {
         <div className="mt-16 grid max-w-2xl gap-8 sm:grid-cols-3">
           <div className="flex flex-col items-center gap-2">
             <ClipboardCheck className="text-primary h-8 w-8" />
-            <h3 className="font-semibold">투두 기록</h3>
+            <h3 className="font-semibold">To-Do 기록</h3>
             <p className="text-muted-foreground text-sm">
               날짜별로 할 일을 간편하게 기록
             </p>
           </div>
           <div className="flex flex-col items-center gap-2">
             <CalendarDays className="text-primary h-8 w-8" />
-            <h3 className="font-semibold">주간 관리</h3>
+            <h3 className="font-semibold">개인성과 관리</h3>
             <p className="text-muted-foreground text-sm">
-              한 주의 업무를 한눈에 파악
+              나의 업무를 한눈에 파악
             </p>
           </div>
           <div className="flex flex-col items-center gap-2">
@@ -63,7 +63,7 @@ export default async function LandingPage() {
 
       {/* Footer */}
       <footer className="text-muted-foreground py-6 text-center text-sm">
-        GG-PLAN
+        Designed and builit by Jung Mok
       </footer>
     </div>
   );
