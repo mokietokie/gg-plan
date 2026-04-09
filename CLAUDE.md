@@ -43,7 +43,7 @@ next-app/
 ├── types/
 │   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
 │   └── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData, TopCategoryData
-├── middleware.ts       # Supabase 세션 갱신 + 라우트 보호
+├── proxy.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
 ```
 
@@ -57,7 +57,7 @@ next-app/
 ## Auth
 - Supabase Auth (이메일+비밀번호 자체 인증)
 - 이메일 확인(Confirm email): MVP에서 비활성화
-- 세션 관리: middleware.ts에서 쿠키 기반 세션 갱신
+- 세션 관리: proxy.ts에서 쿠키 기반 세션 갱신 (Next.js 16부터 middleware → proxy로 변경)
 - 라우트 보호: 미인증→/login 리디렉트, 인증→/todos 리디렉트
 - Route Groups: (auth) = 로그인/회원가입, (protected) = 인증 필요 페이지
 - 서버 액션: app/(auth)/actions.ts (signup, login, logout)
@@ -114,7 +114,7 @@ next-app/
 - 환경변수 파일: `.env.local`
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase 프로젝트 URL (클라이언트+서버 공용)
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon/public 키 (클라이언트+서버 공용)
-- 사용처: `lib/supabase/client.ts`, `lib/supabase/server.ts`, `middleware.ts`
+- 사용처: `lib/supabase/client.ts`, `lib/supabase/server.ts`, `proxy.ts`
 
 ## 금지사항
 - any 타입 금지

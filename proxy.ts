@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 const protectedPaths = ["/todos", "/report"];
 const authPaths = ["/login", "/signup"];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
