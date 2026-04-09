@@ -67,6 +67,9 @@ export function CategoryChart({ data }: CategoryChartProps) {
                   />
                   <span className="truncate">{d.category}</span>
                   <span className="text-muted-foreground ml-auto shrink-0">
+                    {d.count}건
+                  </span>
+                  <span className="text-muted-foreground shrink-0 tabular-nums">
                     {d.percentage}%
                   </span>
                 </div>

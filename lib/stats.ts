@@ -4,7 +4,6 @@ import type {
   CategoryData,
   DailyActivityData,
   WeeklyTrendData,
-  TopCategoryData,
 } from "@/types/stats";
 import { eachDayOfRange, getWeekRange, formatDateISO } from "@/lib/date";
 
@@ -115,10 +114,3 @@ export function computeWeeklyTrend(
   return weeks;
 }
 
-export function computeTopCategories(
-  todos: Todo[],
-  limit = 5
-): TopCategoryData[] {
-  const distribution = computeCategoryDistribution(todos);
-  return distribution.slice(0, limit);
-}

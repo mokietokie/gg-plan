@@ -11,7 +11,6 @@ import {
   computeCategoryDistribution,
   computeDailyActivity,
   computeWeeklyTrend,
-  computeTopCategories,
 } from "@/lib/stats";
 import type { Todo } from "@/types/todo";
 import type { StatsPeriod } from "@/types/stats";
@@ -21,7 +20,6 @@ import { CompletionRateCard } from "./_components/completion-rate-card";
 import { CategoryChart } from "./_components/category-chart";
 import { DailyActivityChart } from "./_components/daily-activity-chart";
 import { WeeklyTrendChart } from "./_components/weekly-trend-chart";
-import { TopCategories } from "./_components/top-categories";
 
 function getDateRange(
   period: StatsPeriod,
@@ -119,7 +117,6 @@ export default async function StatsPage({
   const categoryDistribution = computeCategoryDistribution(todos);
   const dailyActivity = computeDailyActivity(todos, start, end);
   const weeklyTrend = computeWeeklyTrend(todos, start, end);
-  const topCategories = computeTopCategories(todos);
 
   const isEmpty = todos.length === 0;
 
@@ -161,9 +158,6 @@ export default async function StatsPage({
           {period !== "weekly" && weeklyTrend.length > 1 && (
             <WeeklyTrendChart data={weeklyTrend} />
           )}
-
-          {/* TOP 카테고리 */}
-          <TopCategories data={topCategories} />
         </>
       )}
     </div>

@@ -2,7 +2,7 @@
 GG-PLAN — 투두만 쓰면 주간보고서가 자동으로 만들어지는 직장인용 업무 관리 서비스
 
 ## Tech Stack
-- Next.js 15 (App Router) + TypeScript
+- Next.js 16 (App Router) + TypeScript
 - shadcn/ui + Tailwind CSS v4
 - Supabase (Auth + PostgreSQL)
 - 배포: Vercel
@@ -37,12 +37,11 @@ next-app/
 │   ├── supabase/       # client.ts (브라우저용), server.ts (서버용)
 │   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간 범위, eachDayOfRange 등)
 │   ├── report.ts       # 주간보고서 생성 순수 함수 (generateReport)
-│   ├── stats.ts        # 통계 집계 순수 함수 5개
+│   ├── stats.ts        # 통계 집계 순수 함수 4개
 │   └── utils.ts        # shadcn/ui 유틸
-├── hooks/              # 커스텀 훅
 ├── types/
 │   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
-│   └── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData, TopCategoryData
+│   └── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData
 ├── proxy.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
 ```
@@ -94,8 +93,8 @@ next-app/
 ## Stats Feature (통계 대시보드)
 - 페이지: /stats — URL searchParams로 기간 선택 (?period=weekly|monthly|custom&date=YYYY-MM-DD&from=&to=)
 - 차트 라이브러리: Recharts (shadcn/ui chart 래퍼) — `components/ui/chart.tsx`
-- 통계 집계: `lib/stats.ts` — 순수 함수 5개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
-- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend, computeTopCategories
+- 통계 집계: `lib/stats.ts` — 순수 함수 4개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
+- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend
 - 데이터 패칭: Server Component에서 현재 기간 + 이전 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
 - 메트릭 카드: 완료율(AreaChart 스파크라인) | 총 투두 | 완료 | 미완료
 - 차트 구성: 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)

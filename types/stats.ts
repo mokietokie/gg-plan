@@ -28,8 +28,3 @@ export type WeeklyTrendData = {
   completed: number;
 };
 
-export type TopCategoryData = {
-  category: string;
-  count: number;
-  percentage: number; // 0~100
-};
