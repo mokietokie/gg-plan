@@ -16,8 +16,8 @@ next-app/
 │   │   ├── layout.tsx  # 중앙 정렬 카드 레이아웃
 │   │   ├── login/
 │   │   └── signup/
-│   ├── (protected)/    # 인증 필요 페이지 (Header 포함)
-│   │   ├── layout.tsx
+│   ├── (protected)/    # 인증 필요 페이지 (Header + 메모 패널 전역 마운트)
+│   │   ├── layout.tsx  # async: getMemo() 프리페치 + MemoProvider/MemoHotkey/MemoPanel 마운트
 │   │   ├── todos/
 │   │   │   ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
 │   │   │   ├── actions.ts     # Server Actions: CRUD + 카테고리 관리 + 실행취소(restore)
@@ -28,14 +28,20 @@ next-app/
 │   │   ├── stats/
 │   │   │   ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계
 │   │   │   └── _components/   # 통계 관련 클라이언트 컴포넌트
-│   │   └── archive/
-│   │       ├── page.tsx       # Server Component: 기간/카테고리/검색 기반 투두 조회
-│   │       └── _components/   # 아카이브 관련 클라이언트 컴포넌트
+│   │   ├── archive/
+│   │   │   ├── page.tsx       # Server Component: 기간/카테고리/검색 기반 투두 조회
+│   │   │   └── _components/   # 아카이브 관련 클라이언트 컴포넌트
+│   │   └── memos/
+│   │       └── actions.ts     # Server Actions: getMemo, saveMemo(upsert)
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
 │   ├── header.tsx      # 공통 헤더 (로고+네비+로그아웃)
-│   └── ui/             # shadcn/ui 컴포넌트
+│   ├── memo/           # 메모 스크래치패드 (플로팅 패널)
+│   │   ├── memo-provider.tsx  # Client Context: open/content/savedAt/save/isSaving
+│   │   ├── memo-hotkey.tsx    # Client: window keydown M 가드 리스너 (return null)
+│   │   └── memo-panel.tsx     # Client: 플로팅 패널 UI (드래그/리사이즈/localStorage)
+│   └── ui/             # shadcn/ui 컴포넌트 (dialog, textarea 포함)
 ├── lib/
 │   ├── supabase/       # client.ts (브라우저용), server.ts (서버용)
 │   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간/분기 범위, eachDayOfRange 등)
@@ -46,7 +52,8 @@ next-app/
 ├── types/
 │   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
 │   ├── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData
-│   └── archive.ts      # WeekGroup
+│   ├── archive.ts      # WeekGroup
+│   └── memo.ts         # Memo, SaveMemoResult
 ├── proxy.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
 ```
@@ -69,7 +76,8 @@ next-app/
 ## DB Schema
 - `todos` 테이블: id(uuid), user_id(uuid), title(text), description(text), category(text), date(date), is_completed(boolean), completed_at(timestamptz), created_at(timestamptz)
 - `user_categories` 테이블: id(uuid), user_id(uuid), name(text), sort_order(integer), created_at(timestamptz) — UNIQUE(user_id, name)
-- RLS 활성화: 두 테이블 모두 본인 데이터만 CRUD 가능
+- `memos` 테이블: user_id(uuid PK, FK→auth.users on delete cascade), content(text default ''), updated_at(timestamptz) — 사용자당 1 row 강제
+- RLS 활성화: 세 테이블 모두 본인 데이터만 CRUD 가능 (memos는 select/insert/update 정책만, delete 없음)
 
 ## Todos Feature
 - 뷰 모드: 일간(daily), 주간(weekly), 월간(monthly) — URL searchParams로 관리 (?date=&view=)
@@ -107,6 +115,31 @@ next-app/
 - 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
 - chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)
 - null 카테고리: "미지정"으로 표시 (report.ts의 "기타"와 구분)
+
+## Memo Feature (글로벌 스크래치패드)
+- 진입: 어느 `(protected)` 페이지에서든 키보드 `M` 한 번 → 플로팅 패널 오픈 (전용 페이지 없음)
+- 모델: **사용자당 1개의 긴 텍스트 문서** (`memos.user_id` PK + upsert) — sticky note 멘탈 모델, 메모 목록/다건 아님
+- 데이터 흐름: `layout.tsx`(Server, async)가 `getMemo()`로 초기 내용 프리페치 → `MemoProvider` Context에 `initialContent`/`initialUpdatedAt` 주입 → `MemoPanel` 오픈 시 네트워크 대기 없이 즉시 표시
+- Server Actions (`app/(protected)/memos/actions.ts`): `getMemo()`, `saveMemo(content)` — upsert `onConflict: user_id`, `updated_at` 반환
+- 단축키 가드 (`memo-hotkey.tsx`, `window` keydown):
+  - `e.key` ∈ {`m`, `M`}가 아니면 무시
+  - `metaKey || ctrlKey || altKey` 조합이면 무시 (브라우저/OS 단축키 회피, `Cmd+M` 최소화 등)
+  - `e.isComposing` 이면 무시 (한글 IME "ㅁ" 조합 중)
+  - `target`이 `INPUT`/`TEXTAREA`/`[contenteditable]` 이면 무시 (투두·검색 입력 중)
+  - 이미 패널 열린 상태면 무시
+- 플로팅 패널 (`memo-panel.tsx`):
+  - **비모달**: Radix Dialog 사용 안 함. `position: fixed` + 인라인 좌표 style로 직접 렌더. 배경 오버레이 없음 → 네비 탭·투두 리스트 등 뒷 UI와 동시 상호작용 가능
+  - **드래그**: 헤더 바 `onPointerDown` → `currentTarget.setPointerCapture(pointerId)` → `onPointerMove`로 좌표 갱신. 드래그 종료 시 `releasePointerCapture`
+  - **리사이즈**: 우하단 `nwse-resize` 핸들(SVG 빗금)에 동일한 pointer capture 패턴으로 width/height 갱신
+  - **좌표/크기 영속화**: `localStorage` 키 `memo-panel-state-v1`에 `{x, y, width, height}` 저장. `useState` lazy init에서 `typeof window` 체크 후 로드 → **SSR-safe**(useEffect setState 패턴 안 씀, React 19 `react-hooks/set-state-in-effect` 룰 통과)
+  - **기본값**: 화면 왼쪽 세로 중앙, `340 × (viewport height × 0.3)` px. 최소 `240×180`
+  - **클램프**: 드래그/리사이즈/윈도우 리사이즈 시 `clampState()`로 뷰포트 경계 강제
+  - **닫기**: `Esc` 또는 X 버튼. Cmd/Ctrl+Enter는 저장만 (패널 유지, persistent)
+  - **저장**: `useTransition`으로 pending 상태, 푸터에 "방금 저장됨 / N분 전 저장됨 / 수정됨 · …" 상대시간 표시
+  - **드래프트**: `Esc`로 닫고 재오픈해도 드래프트 유지(Context `content` state). 새로고침 시에만 초기화
+  - **탭 전환 시 유지**: `(protected)/layout.tsx`에 마운트되어 있어 Next.js App Router 레이아웃 재사용 덕분에 `/todos` ↔ `/report` 이동해도 패널 state 그대로
+- 스타일: 연노란색 sticky note 테마 — `bg-yellow-50`/`100` + `border-yellow-200/300` + 다크 모드 `yellow-950`/`900/40` variants. 헤더·푸터·placeholder·리사이즈 아이콘 모두 노란 톤으로 통일해 배경/네비와 시각적 분리
+- 접근성: `role="dialog" aria-label="메모"` (비모달이므로 `aria-modal` 없음)
 
 ## Archive Feature (아카이브)
 - 페이지: /archive — URL searchParams로 상태 관리 (?from=&to=&category=&q=)
