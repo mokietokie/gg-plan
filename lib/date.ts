@@ -85,3 +85,20 @@ export function getMonthRange(year: number, month: number): { start: Date; end: 
   const end = new Date(year, month + 1, 0);
   return { start, end };
 }
+
+/** 분기 번호 (1~4) */
+export function getQuarterFromDate(date: Date): number {
+  return Math.floor(date.getMonth() / 3) + 1;
+}
+
+/** 분기 범위 (quarter는 1~4) */
+export function getQuarterRange(year: number, quarter: number): { start: Date; end: Date } {
+  const startMonth = (quarter - 1) * 3;
+  const start = new Date(year, startMonth, 1);
+  const end = new Date(year, startMonth + 3, 0);
+  return { start, end };
+}
+
+export function formatQuarterKR(year: number, quarter: number): string {
+  return `${year}년 ${quarter}분기`;
+}

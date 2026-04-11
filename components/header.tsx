@@ -35,6 +35,12 @@ export async function Header() {
             >
               대쉬보드
             </Link>
+            <Link
+              href="/archive"
+              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+            >
+              아카이브
+            </Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">

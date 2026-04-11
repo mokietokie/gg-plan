@@ -25,9 +25,12 @@ next-app/
 │   │   ├── report/
 │   │   │   ├── page.tsx       # Server Component: 주간 투두 쿼리 + 보고서 생성
 │   │   │   └── _components/   # 보고서 관련 클라이언트 컴포넌트
-│   │   └── stats/
-│   │       ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계
-│   │       └── _components/   # 통계 관련 클라이언트 컴포넌트
+│   │   ├── stats/
+│   │   │   ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계
+│   │   │   └── _components/   # 통계 관련 클라이언트 컴포넌트
+│   │   └── archive/
+│   │       ├── page.tsx       # Server Component: 기간/카테고리/검색 기반 투두 조회
+│   │       └── _components/   # 아카이브 관련 클라이언트 컴포넌트
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
@@ -35,13 +38,15 @@ next-app/
 │   └── ui/             # shadcn/ui 컴포넌트
 ├── lib/
 │   ├── supabase/       # client.ts (브라우저용), server.ts (서버용)
-│   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간 범위, eachDayOfRange 등)
+│   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간/분기 범위, eachDayOfRange 등)
 │   ├── report.ts       # 주간보고서 생성 순수 함수 (generateReport)
 │   ├── stats.ts        # 통계 집계 순수 함수 4개
+│   ├── archive.ts      # 주차별 그룹핑(groupTodosByWeek) + CSV 직렬화(todosToCsv)
 │   └── utils.ts        # shadcn/ui 유틸
 ├── types/
 │   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
-│   └── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData
+│   ├── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData
+│   └── archive.ts      # WeekGroup
 ├── proxy.ts       # Supabase 세션 갱신 + 라우트 보호
 └── public/             # 정적 파일
 ```
@@ -102,6 +107,26 @@ next-app/
 - 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
 - chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)
 - null 카테고리: "미지정"으로 표시 (report.ts의 "기타"와 구분)
+
+## Archive Feature (아카이브)
+- 페이지: /archive — URL searchParams로 상태 관리 (?from=&to=&category=&q=)
+- 기본 기간: from/to 없으면 이번 달로 자동 설정 (getMonthRange)
+- 기간 선택: date input 2개 + 프리셋 버튼 3개(이번 달/지난 달/최근 3개월) — archive-period.tsx
+- 검색: Spotlight 스타일 rounded-2xl Input, 300ms debounce, router.replace로 q 업데이트 — archive-search.tsx
+- 카테고리 필터: 복수 선택 가능(쉼표 구분), "전체" + 카테고리 목록 + "미지정" pill — category-chips.tsx
+  - 복수 쿼리: Supabase `.or("category.in.(\"A\",\"B\"),category.is.null")` 사용
+  - "미지정"(null)은 `is.null` 절로 별도 OR 합침
+- 주차별 아코디언: shadcn Accordion(type="multiple"), 첫 주차만 기본 펼침 — archive-accordion.tsx
+- 주차 그룹핑: `lib/archive.ts` `groupTodosByWeek()` — 일~토 기준, 주차 시작일 내림차순, 내부는 날짜 내림차순
+- 주차 라벨: "N월 M주차" (시작일 기준 월, `Math.ceil(day / 7)`)
+- 아코디언 내부: 해당 주차의 **모든** 투두를 표시 (slice/limit 없음)
+- CSV 내보내기: 복사 + 다운로드 2버튼 — export-button.tsx
+  - `todosToCsv()`: UTF-8 BOM 포함(Excel 한글 깨짐 방지), CRLF 줄바꿈, 쉼표/따옴표/줄바꿈 이스케이프
+  - 컬럼: 날짜, 제목, 카테고리, 상태(완료/미완료), 완료일시
+  - 파일명: `gg-plan_archive_{from}_{to}.csv`
+  - 0건이면 disabled
+- Sticky 필터 영역: 검색바 + 기간 + 카테고리 chips를 상단 고정 (`sticky top-0 backdrop-blur`)
+- 수평 스크롤: `scrollbar-hide` 유틸 사용 (globals.css @layer utilities에 정의)
 
 ## 주의사항
 - [RISK] 주간보고서 자동 생성: 규칙 기반 집계로 시작. category별 그룹핑 + 완료/미완료 분류. 실제 제출 가능 품질인지 초기 피드백 필수
