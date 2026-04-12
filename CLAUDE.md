@@ -23,6 +23,10 @@ next-app/
 │   │   │   ├── actions.ts          # Server Actions: CRUD + 카테고리 관리 + 실행취소(restore)
 │   │   │   ├── sharing-actions.ts  # Server Actions: 초대/수락/거절/연결해제/닉네임 관리
 │   │   │   └── _components/        # 투두 관련 클라이언트 컴포넌트
+│   │   ├── goals/
+│   │   │   ├── page.tsx       # Server Component: 연도별 과제 조회 + 진행률 계산 + 연결 투두 매핑
+│   │   │   ├── actions.ts     # Server Actions: 과제 CRUD + 카테고리 매핑 + 진행률 오버라이드
+│   │   │   └── _components/   # 추진과제 관련 클라이언트 컴포넌트
 │   │   ├── stats/
 │   │   │   ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계 + 보고서 생성
 │   │   │   └── _components/   # 통계/보고서 관련 클라이언트 컴포넌트
@@ -34,7 +38,7 @@ next-app/
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
-│   ├── header.tsx      # 공통 헤더 (로고+네비+공유버튼+메모버튼+로그아웃)
+│   ├── header.tsx      # 공통 헤더 (로고+네비+공유버튼+메모버튼+로그아웃) — 네비: To-Do, 대쉬보드, 추진과제, 아카이브
 │   ├── sharing/        # 공유 관리 (SharingManager 다이얼로그)
 │   ├── memo/           # 메모 스크래치패드 (플로팅 패널)
 │   └── ui/             # shadcn/ui 컴포넌트
@@ -43,10 +47,12 @@ next-app/
 │   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간/분기 범위, eachDayOfRange 등)
 │   ├── report.ts       # 보고서 생성 순수 함수
 │   ├── stats.ts        # 통계 집계 순수 함수
+│   ├── objectives.ts   # 추진과제 진행률 계산 순수 함수
 │   ├── archive.ts      # 주차별 그룹핑 + CSV 직렬화
 │   └── utils.ts        # shadcn/ui 유틸
 ├── types/
 │   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
+│   ├── objective.ts    # Objective, ObjectiveCategory, ObjectiveWithProgress
 │   ├── sharing.ts      # SharingInvitation, SharingConnection, SharedUser, InvitationWithEmail
 │   ├── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyActivityData
 │   ├── archive.ts      # WeekGroup
@@ -77,7 +83,9 @@ next-app/
 - `profiles` 테이블: id(uuid PK, FK→auth.users on delete cascade), email(text) — auth.users 이메일 조회용, 가입 시 트리거로 자동 생성
 - `sharing_invitations` 테이블: id(uuid), from_user_id(uuid), to_user_id(uuid), status(text: pending|accepted|declined), created_at(timestamptz), responded_at(timestamptz) — UNIQUE(from_user_id, to_user_id), CHECK(from≠to)
 - `sharing_connections` 테이블: id(uuid), user_a_id(uuid), user_b_id(uuid), user_a_nickname(text), user_b_nickname(text), created_at(timestamptz) — CHECK(user_a_id < user_b_id), UNIQUE(user_a_id, user_b_id)
-- RLS: todos는 본인 CRUD + 연결된 사용자 SELECT, sharing 테이블은 본인 데이터만, profiles는 인증 사용자 전체 SELECT
+- `objectives` 테이블: id(uuid), user_id(uuid), title(text), description(text), year(integer), progress_override(integer, nullable), status(text: active|completed|cancelled), sort_order(integer), created_at(timestamptz), updated_at(timestamptz)
+- `objective_categories` 테이블: id(uuid), objective_id(uuid FK→objectives cascade), category_name(text), created_at(timestamptz) — UNIQUE(objective_id, category_name)
+- RLS: todos는 본인 CRUD + 연결된 사용자 SELECT, objectives는 본인만 CRUD, objective_categories는 objectives 소유자만 SELECT/INSERT/DELETE, sharing 테이블은 본인 데이터만, profiles는 인증 사용자 전체 SELECT
 
 ## Todos Feature
 - 뷰 모드: 일간(daily), 주간(weekly), 월간(monthly) — URL searchParams로 관리 (?date=&view=)
@@ -106,6 +114,15 @@ next-app/
   - 동료 투두 필터: 연결된 사용자 체크박스 (SharedUserFilter 컴포넌트)
   - 일간 뷰: 내 투두 아래에 사용자별 그룹핑 + SharedTodoItem (읽기전용, 파란 테두리)
   - 주간/월간 뷰: 내 투두 먼저 → 파란 구분선 → 공유 투두 (이메일 이니셜 표시), 별도 MAX_VISIBLE 카운팅
+
+## Goals Feature (중점추진과제)
+- 페이지: /goals — URL searchParams로 연도 선택 (?year=2026, 기본값: 현재 연도)
+- 모델: 연간 3~5개 과제 설정, 과제별 카테고리 매핑으로 투두 자동 연결
+- 자동 분류: objective_categories에 매핑된 카테고리와 투두의 category 필드가 일치하면 자동 연결 (투두 생성 플로우 변경 없음)
+- 진행률: 연결된 투두 완료율 자동 계산 + progress_override로 수동 보정 가능 (null=자동, 0~100=수동)
+- 순수 함수: `lib/objectives.ts` — buildObjectivesWithProgress(objectives, objectiveCategories, todos) → ObjectiveWithProgress[]
+- Server Actions (goals/actions.ts): getObjectives, getObjectiveCategories, getLinkedTodos, createObjective, updateObjective, deleteObjective, addObjectiveCategory, removeObjectiveCategory, updateProgressOverride
+- 컴포넌트: YearSelector(연도 네비), ObjectiveList(목록+추가), ObjectiveCard(카드+진행률+연결투두), ObjectiveFormDialog(생성/수정), CategoryMapper(카테고리 매핑), ProgressOverride(수동 진행률)
 
 ## Stats Feature (통계 대시보드 + 보고서 통합)
 - 페이지: /stats — URL searchParams로 기간 선택 (?period=weekly|monthly|custom&date=YYYY-MM-DD&from=&to=)

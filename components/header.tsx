@@ -46,6 +46,12 @@ export async function Header() {
               대쉬보드
             </Link>
             <Link
+              href="/goals"
+              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+            >
+              추진과제
+            </Link>
+            <Link
               href="/archive"
               className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
