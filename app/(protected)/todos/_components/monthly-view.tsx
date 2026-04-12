@@ -8,15 +8,24 @@ import type { Todo } from "@/types/todo";
 const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
 const GRID_COLS = "0.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr";
 const MAX_VISIBLE_TODOS = 3;
+const MAX_VISIBLE_SHARED = 2;
+
+function getInitial(email: string): string {
+  return email.charAt(0).toUpperCase();
+}
 
 export function MonthlyView({
   year,
   month,
   todos,
+  sharedTodos = [],
+  emailMap = {},
 }: {
   year: number;
   month: number;
   todos: Todo[];
+  sharedTodos?: Todo[];
+  emailMap?: Record<string, string>;
 }) {
   const router = useRouter();
   const days = getMonthCalendarDays(year, month);
@@ -27,6 +36,13 @@ export function MonthlyView({
     const existing = todosByDate.get(todo.date) ?? [];
     existing.push(todo);
     todosByDate.set(todo.date, existing);
+  }
+
+  const sharedByDate = new Map<string, Todo[]>();
+  for (const todo of sharedTodos) {
+    const existing = sharedByDate.get(todo.date) ?? [];
+    existing.push(todo);
+    sharedByDate.set(todo.date, existing);
   }
 
   function handleDateClick(date: Date) {
@@ -60,8 +76,10 @@ export function MonthlyView({
           const dateStr = formatDateISO(date);
           const isCurrentMonth = date.getMonth() === month;
           const dayTodos = todosByDate.get(dateStr) ?? [];
+          const dayShared = sharedByDate.get(dateStr) ?? [];
           const today = isToday(date);
-          const remaining = dayTodos.length - MAX_VISIBLE_TODOS;
+          const myRemaining = dayTodos.length - MAX_VISIBLE_TODOS;
+          const sharedRemaining = dayShared.length - MAX_VISIBLE_SHARED;
 
           return (
             <button
@@ -94,6 +112,7 @@ export function MonthlyView({
 
               {/* 투두 목록 */}
               <div className="space-y-0.5">
+                {/* 내 투두 */}
                 {dayTodos.slice(0, MAX_VISIBLE_TODOS).map((todo) => (
                   <div
                     key={todo.id}
@@ -107,10 +126,42 @@ export function MonthlyView({
                     {todo.title}
                   </div>
                 ))}
-                {remaining > 0 && (
+                {myRemaining > 0 && (
                   <div className="px-1 text-[10px] text-muted-foreground font-medium">
-                    +{remaining}개 더
+                    +{myRemaining}개 더
                   </div>
+                )}
+
+                {/* 공유 투두 구분선 + 이니셜:제목 */}
+                {dayShared.length > 0 && (
+                  <>
+                    <div className="border-t border-blue-200 dark:border-blue-800 my-0.5" />
+                    {dayShared.slice(0, MAX_VISIBLE_SHARED).map((todo) => {
+                      const initial = getInitial(emailMap[todo.user_id] ?? "?");
+                      return (
+                        <div
+                          key={todo.id}
+                          className={cn(
+                            "truncate rounded px-1 py-0.5 text-[11px] leading-tight",
+                            todo.is_completed
+                              ? "bg-muted text-muted-foreground line-through"
+                              : "bg-blue-100/70 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200"
+                          )}
+                        >
+                          <span className="font-semibold text-blue-600 dark:text-blue-400">
+                            {initial}
+                          </span>
+                          {" "}
+                          {todo.title}
+                        </div>
+                      );
+                    })}
+                    {sharedRemaining > 0 && (
+                      <div className="px-1 text-[10px] text-blue-500 font-medium">
+                        +{sharedRemaining}개 더
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </button>

@@ -14,13 +14,22 @@ import type { Todo } from "@/types/todo";
 const DAY_HEADERS = ["일", "월", "화", "수", "목", "금", "토"];
 const GRID_COLS = "0.5fr 1fr 1fr 1fr 1fr 1fr 0.5fr";
 const MAX_VISIBLE_TODOS = 5;
+const MAX_VISIBLE_SHARED = 3;
+
+function getInitial(email: string): string {
+  return email.charAt(0).toUpperCase();
+}
 
 export function WeeklyView({
   weekStart,
   todos,
+  sharedTodos = [],
+  emailMap = {},
 }: {
   weekStart: string;
   todos: Todo[];
+  sharedTodos?: Todo[];
+  emailMap?: Record<string, string>;
   categories?: string[];
 }) {
   const router = useRouter();
@@ -30,7 +39,8 @@ export function WeeklyView({
     const day = addDays(start, i);
     const dateStr = formatDateISO(day);
     const dayTodos = todos.filter((t) => t.date === dateStr);
-    return { date: day, dateStr, todos: dayTodos };
+    const daySharedTodos = sharedTodos.filter((t) => t.date === dateStr);
+    return { date: day, dateStr, todos: dayTodos, sharedTodos: daySharedTodos };
   });
 
   function handleDateClick(date: Date) {
@@ -80,8 +90,9 @@ export function WeeklyView({
           minHeight: "480px",
         }}
       >
-        {days.map(({ date, dateStr, todos: dayTodos }) => {
-          const remaining = dayTodos.length - MAX_VISIBLE_TODOS;
+        {days.map(({ date, dateStr, todos: dayTodos, sharedTodos: dayShared }) => {
+          const myRemaining = dayTodos.length - MAX_VISIBLE_TODOS;
+          const sharedRemaining = dayShared.length - MAX_VISIBLE_SHARED;
 
           return (
             <button
@@ -91,6 +102,7 @@ export function WeeklyView({
               className="min-w-0 overflow-hidden border-r border-b p-1.5 text-left transition-colors hover:bg-muted/50 last:border-r-0"
             >
               <div className="space-y-0.5">
+                {/* 내 투두 */}
                 {dayTodos.slice(0, MAX_VISIBLE_TODOS).map((todo) => (
                   <div
                     key={todo.id}
@@ -104,10 +116,41 @@ export function WeeklyView({
                     {todo.title}
                   </div>
                 ))}
-                {remaining > 0 && (
+                {myRemaining > 0 && (
                   <div className="px-1 text-[10px] text-muted-foreground font-medium">
-                    +{remaining}개 더
+                    +{myRemaining}개 더
                   </div>
+                )}
+
+                {/* 공유 투두 구분선 + 사용자별 표시 */}
+                {dayShared.length > 0 && (
+                  <>
+                    <div className="border-t border-blue-200 dark:border-blue-800 my-0.5" />
+                    {dayShared.slice(0, MAX_VISIBLE_SHARED).map((todo) => {
+                      const initial = getInitial(emailMap[todo.user_id] ?? "?");
+                      return (
+                        <div
+                          key={todo.id}
+                          className={cn(
+                            "flex items-center gap-0.5 truncate rounded px-1 py-0.5 text-[11px] leading-tight",
+                            todo.is_completed
+                              ? "bg-muted text-muted-foreground line-through"
+                              : "bg-blue-100/70 text-blue-900 dark:bg-blue-900/30 dark:text-blue-200"
+                          )}
+                        >
+                          <span className="shrink-0 text-[10px] font-semibold text-blue-600 dark:text-blue-400">
+                            {initial}
+                          </span>
+                          <span className="truncate">{todo.title}</span>
+                        </div>
+                      );
+                    })}
+                    {sharedRemaining > 0 && (
+                      <div className="px-1 text-[10px] text-blue-500 font-medium">
+                        +{sharedRemaining}개 더
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </button>

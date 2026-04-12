@@ -3,12 +3,27 @@ import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
 import { MemoButton } from "@/components/memo/memo-button";
+import { SharingManager } from "@/components/sharing/sharing-manager";
+import {
+  getConnectedUsers,
+  getPendingInvitations,
+  getSentInvitations,
+  getPendingInvitationCount,
+} from "@/app/(protected)/todos/sharing-actions";
 
 export async function Header() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const [connectedUsers, pendingInvitations, sentInvitations, pendingCount] =
+    await Promise.all([
+      getConnectedUsers(),
+      getPendingInvitations(),
+      getSentInvitations(),
+      getPendingInvitationCount(),
+    ]);
 
   return (
     <header className="border-b">
@@ -39,6 +54,12 @@ export async function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <SharingManager
+            connectedUsers={connectedUsers}
+            pendingInvitations={pendingInvitations}
+            sentInvitations={sentInvitations}
+            pendingCount={pendingCount}
+          />
           <MemoButton />
           <span className="text-muted-foreground text-sm">{user?.email}</span>
           <form action={logout}>
