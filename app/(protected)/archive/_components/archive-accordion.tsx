@@ -14,18 +14,18 @@ import type { Todo } from "@/types/todo";
 
 type ArchiveAccordionProps = {
   groups: WeekGroup[];
-  isSearching: boolean;
+  isFiltering: boolean;
 };
 
-export function ArchiveAccordion({ groups, isSearching }: ArchiveAccordionProps) {
+export function ArchiveAccordion({ groups, isFiltering }: ArchiveAccordionProps) {
   if (groups.length === 0) {
     return (
       <div className="text-muted-foreground py-16 text-center">
         <p className="text-base font-medium">
-          {isSearching ? "검색 결과가 없습니다" : "이 기간에 업무가 없습니다"}
+          {isFiltering ? "검색 결과가 없습니다" : "이 기간에 업무가 없습니다"}
         </p>
         <p className="mt-1 text-sm">
-          {isSearching
+          {isFiltering
             ? "다른 검색어를 시도해보세요"
             : "다른 기간이나 카테고리를 선택해보세요"}
         </p>
@@ -33,13 +33,10 @@ export function ArchiveAccordion({ groups, isSearching }: ArchiveAccordionProps)
     );
   }
 
-  // 기본적으로 첫 번째 주차만 펼침
-  const defaultValue = groups.length > 0 ? [groups[0].key] : [];
-
   return (
     <Accordion
       type="multiple"
-      defaultValue={defaultValue}
+      defaultValue={isFiltering ? groups.map((g) => g.key) : []}
       className="flex flex-col gap-3"
     >
       {groups.map((group) => (

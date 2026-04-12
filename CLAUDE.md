@@ -22,12 +22,9 @@ next-app/
 │   │   │   ├── page.tsx       # Server Component: 데이터 패칭 + 뷰 분기
 │   │   │   ├── actions.ts     # Server Actions: CRUD + 카테고리 관리 + 실행취소(restore)
 │   │   │   └── _components/   # 투두 관련 클라이언트 컴포넌트
-│   │   ├── report/
-│   │   │   ├── page.tsx       # Server Component: 주간 투두 쿼리 + 보고서 생성
-│   │   │   └── _components/   # 보고서 관련 클라이언트 컴포넌트
 │   │   ├── stats/
-│   │   │   ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계
-│   │   │   └── _components/   # 통계 관련 클라이언트 컴포넌트
+│   │   │   ├── page.tsx       # Server Component: 기간별 투두 쿼리 + 통계 집계 + 보고서 생성
+│   │   │   └── _components/   # 통계/보고서 관련 클라이언트 컴포넌트
 │   │   ├── archive/
 │   │   │   ├── page.tsx       # Server Component: 기간/카테고리/검색 기반 투두 조회
 │   │   │   └── _components/   # 아카이브 관련 클라이언트 컴포넌트
@@ -36,22 +33,23 @@ next-app/
 │   ├── layout.tsx      # 루트 레이아웃
 │   └── page.tsx        # 랜딩 페이지
 ├── components/
-│   ├── header.tsx      # 공통 헤더 (로고+네비+로그아웃)
+│   ├── header.tsx      # 공통 헤더 (로고+네비+메모버튼+로그아웃)
 │   ├── memo/           # 메모 스크래치패드 (플로팅 패널)
 │   │   ├── memo-provider.tsx  # Client Context: open/content/savedAt/save/isSaving
-│   │   ├── memo-hotkey.tsx    # Client: window keydown M 가드 리스너 (return null)
+│   │   ├── memo-hotkey.tsx    # Client: window keydown M/ㅡ 가드 리스너 (return null)
+│   │   ├── memo-button.tsx    # Client: 헤더 메모 아이콘 버튼 (StickyNote + Tooltip)
 │   │   └── memo-panel.tsx     # Client: 플로팅 패널 UI (드래그/리사이즈/localStorage)
 │   └── ui/             # shadcn/ui 컴포넌트 (dialog, textarea 포함)
 ├── lib/
 │   ├── supabase/       # client.ts (브라우저용), server.ts (서버용)
 │   ├── date.ts         # 날짜 유틸 (포맷, 주간/월간/분기 범위, eachDayOfRange 등)
-│   ├── report.ts       # 주간보고서 생성 순수 함수 (generateReport)
-│   ├── stats.ts        # 통계 집계 순수 함수 4개
+│   ├── report.ts       # 보고서 생성 순수 함수 (generateReport, generateMonthlyReport)
+│   ├── stats.ts        # 통계 집계 순수 함수 (completionRate, categoryDistribution, dailyActivity, weeklyActivity)
 │   ├── archive.ts      # 주차별 그룹핑(groupTodosByWeek) + CSV 직렬화(todosToCsv)
 │   └── utils.ts        # shadcn/ui 유틸
 ├── types/
 │   ├── todo.ts         # Todo, UserCategory, ActionResult, CreateTodoResult
-│   ├── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyTrendData
+│   ├── stats.ts        # StatsPeriod, CompletionRateData, CategoryData, DailyActivityData, WeeklyActivityData
 │   ├── archive.ts      # WeekGroup
 │   └── memo.ts         # Memo, SaveMemoResult
 ├── proxy.ts       # Supabase 세션 갱신 + 라우트 보호
@@ -95,34 +93,37 @@ next-app/
 - 월간 뷰: 캘린더 그리드 (월요일 시작, 6주 고정), 날짜별 투두 개수/완료율 바, 날짜 클릭 시 일간 뷰로 이동
 - 정렬: 미완료 먼저 → 완료 아래로
 
-## Report Feature (주간보고서)
-- 페이지: /report — URL searchParams로 주차 선택 (?date=YYYY-MM-DD)
-- 보고서 생성: `lib/report.ts` — 순수 함수 `generateReport()`, DB 저장 없이 매번 실시간 생성
-- 생성 규칙: category별 그룹핑(미지정→"기타"), 완료/미완료 분리, 다음 주 투두 자동 포함
-- 주차 단위: 일~토 (getWeekRange), 7일 단위 이전/다음 이동
-- 내보내기: 클립보드 복사 + .txt 파일 다운로드
-- 데이터 패칭: Server Component에서 이번 주 + 다음 주 투두 병렬 쿼리 (Promise.all)
-
-## Stats Feature (통계 대시보드)
+## Stats Feature (통계 대시보드 + 보고서 통합)
 - 페이지: /stats — URL searchParams로 기간 선택 (?period=weekly|monthly|custom&date=YYYY-MM-DD&from=&to=)
 - 차트 라이브러리: Recharts (shadcn/ui chart 래퍼) — `components/ui/chart.tsx`
-- 통계 집계: `lib/stats.ts` — 순수 함수 4개, DB 저장 없이 매번 실시간 집계 (report.ts 패턴과 동일)
-- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyTrend
-- 데이터 패칭: Server Component에서 현재 기간 + 이전 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
+- 통계 집계: `lib/stats.ts` — 순수 함수, DB 저장 없이 매번 실시간 집계
+- 집계 함수: computeCompletionRate, computeCategoryDistribution, computeDailyActivity, computeWeeklyActivity
+- 데이터 패칭: Server Component에서 현재 + 이전 + 다음 기간 병렬 쿼리 (Promise.all) → 서버사이드 집계 → Client Component에 props 전달
 - 메트릭 카드: 완료율(AreaChart 스파크라인) | 총 투두 | 완료 | 미완료
-- 차트 구성: 카테고리 비중(PieChart 도넛), 일별 활동량(BarChart), 주간 추이(LineChart), TOP 카테고리(Tailwind 수평 바)
+- 차트 구성: 카테고리 비중(PieChart 도넛), 활동량(BarChart — 주간뷰:일별/월간뷰:주간)
 - 기간 선택: 주간(getWeekRange) / 월간(getMonthRange) / 기간 선택(커스텀 from~to)
+- 기간 선택 모드: from/to 미입력 시 "기간을 선택해주세요" 빈 상태 표시
 - 빈 상태: 투두 없는 기간 선택 시 차트 대신 빈 상태 메시지 표시
 - chart 색상: globals.css --chart-1~5 컬러 변수 사용 (모노크롬→컬러로 변경)
 - null 카테고리: "미지정"으로 표시 (report.ts의 "기타"와 구분)
+- 보고서 통합: 대시보드 하단에 아코디언 형태로 보고서 표시 (report-section.tsx)
+  - 주간 뷰: 주간보고서 아코디언 1개
+  - 월간 뷰: 월간보고서 아코디언 1개
+  - 기간 선택: 주간 단위 분할 보고서
+  - 내보내기: 각 보고서별 클립보드 복사 + .txt 파일 다운로드
+- 보고서 생성: `lib/report.ts` — 순수 함수, DB 저장 없이 매번 실시간 생성
+  - `generateReport()`: 주간보고서 (완료/진행 중/다음 주 계획, category별 그룹핑)
+  - `generateMonthlyReport()`: 월간보고서 (완료/진행 중/다음 달 계획, category별 그룹핑)
 
 ## Memo Feature (글로벌 스크래치패드)
-- 진입: 어느 `(protected)` 페이지에서든 키보드 `M` 한 번 → 플로팅 패널 오픈 (전용 페이지 없음)
+- 진입: 헤더 메모 아이콘 클릭 또는 키보드 `M`/`ㅡ` 한 번 → 플로팅 패널 오픈 (전용 페이지 없음)
+- 헤더 아이콘: StickyNote 아이콘 (노란색), Tooltip "빠른 메모 (M)" — memo-button.tsx
 - 모델: **사용자당 1개의 긴 텍스트 문서** (`memos.user_id` PK + upsert) — sticky note 멘탈 모델, 메모 목록/다건 아님
 - 데이터 흐름: `layout.tsx`(Server, async)가 `getMemo()`로 초기 내용 프리페치 → `MemoProvider` Context에 `initialContent`/`initialUpdatedAt` 주입 → `MemoPanel` 오픈 시 네트워크 대기 없이 즉시 표시
 - Server Actions (`app/(protected)/memos/actions.ts`): `getMemo()`, `saveMemo(content)` — upsert `onConflict: user_id`, `updated_at` 반환
 - 단축키 가드 (`memo-hotkey.tsx`, `window` keydown):
-  - `e.key` ∈ {`m`, `M`}가 아니면 무시
+  - `e.key` ∈ {`m`, `M`}가 아니면 무시 (keydown)
+  - `e.key` = `ㅡ`도 지원 (keyup, 한글 IME 대응)
   - `metaKey || ctrlKey || altKey` 조합이면 무시 (브라우저/OS 단축키 회피, `Cmd+M` 최소화 등)
   - `e.isComposing` 이면 무시 (한글 IME "ㅁ" 조합 중)
   - `target`이 `INPUT`/`TEXTAREA`/`[contenteditable]` 이면 무시 (투두·검색 입력 중)
@@ -135,7 +136,7 @@ next-app/
   - **기본값**: 화면 왼쪽 세로 중앙, `340 × (viewport height × 0.3)` px. 최소 `240×180`
   - **클램프**: 드래그/리사이즈/윈도우 리사이즈 시 `clampState()`로 뷰포트 경계 강제
   - **닫기**: `Esc` 또는 X 버튼. Cmd/Ctrl+Enter는 저장만 (패널 유지, persistent)
-  - **저장**: `useTransition`으로 pending 상태, 푸터에 "방금 저장됨 / N분 전 저장됨 / 수정됨 · …" 상대시간 표시
+  - **저장**: 자동 저장 (별도 저장 버튼 없음). `useTransition`으로 pending 상태, 푸터에 "방금 저장됨 / N분 전 저장됨 / 수정됨 · …" 상대시간 표시
   - **드래프트**: `Esc`로 닫고 재오픈해도 드래프트 유지(Context `content` state). 새로고침 시에만 초기화
   - **탭 전환 시 유지**: `(protected)/layout.tsx`에 마운트되어 있어 Next.js App Router 레이아웃 재사용 덕분에 `/todos` ↔ `/report` 이동해도 패널 state 그대로
 - 스타일: 연노란색 sticky note 테마 — `bg-yellow-50`/`100` + `border-yellow-200/300` + 다크 모드 `yellow-950`/`900/40` variants. 헤더·푸터·placeholder·리사이즈 아이콘 모두 노란 톤으로 통일해 배경/네비와 시각적 분리
@@ -149,7 +150,7 @@ next-app/
 - 카테고리 필터: 복수 선택 가능(쉼표 구분), "전체" + 카테고리 목록 + "미지정" pill — category-chips.tsx
   - 복수 쿼리: Supabase `.or("category.in.(\"A\",\"B\"),category.is.null")` 사용
   - "미지정"(null)은 `is.null` 절로 별도 OR 합침
-- 주차별 아코디언: shadcn Accordion(type="multiple"), 첫 주차만 기본 펼침 — archive-accordion.tsx
+- 주차별 아코디언: shadcn Accordion(type="multiple"), 기본 모두 닫힘, 검색/카테고리 필터 시 모두 펼침 — archive-accordion.tsx
 - 주차 그룹핑: `lib/archive.ts` `groupTodosByWeek()` — 일~토 기준, 주차 시작일 내림차순, 내부는 날짜 내림차순
 - 주차 라벨: "N월 M주차" (시작일 기준 월, `Math.ceil(day / 7)`)
 - 아코디언 내부: 해당 주차의 **모든** 투두를 표시 (slice/limit 없음)

@@ -3,7 +3,7 @@ import type {
   CompletionRateData,
   CategoryData,
   DailyActivityData,
-  WeeklyTrendData,
+  WeeklyActivityData,
 } from "@/types/stats";
 import { eachDayOfRange, getWeekRange, formatDateISO } from "@/lib/date";
 
@@ -73,12 +73,12 @@ export function computeDailyActivity(
   });
 }
 
-export function computeWeeklyTrend(
+export function computeWeeklyActivity(
   todos: Todo[],
   start: Date,
   end: Date
-): WeeklyTrendData[] {
-  const weeks: WeeklyTrendData[] = [];
+): WeeklyActivityData[] {
+  const weeks: WeeklyActivityData[] = [];
   let current = new Date(start);
 
   while (current <= end) {
@@ -90,9 +90,8 @@ export function computeWeeklyTrend(
     const endStr = formatDateISO(clampedEnd);
 
     const weekTodos = todos.filter((t) => t.date >= startStr && t.date <= endStr);
-    const total = weekTodos.length;
+    const created = weekTodos.length;
     const completed = weekTodos.filter((t) => t.is_completed).length;
-    const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     const sm = clampedStart.getMonth() + 1;
     const sd = clampedStart.getDate();
@@ -100,17 +99,16 @@ export function computeWeeklyTrend(
     const ed = clampedEnd.getDate();
 
     weeks.push({
-      weekLabel: `${sm}/${sd} ~ ${em}/${ed}`,
-      rate,
-      total,
+      weekLabel: `${sm}/${sd}~${em}/${ed}`,
+      created,
       completed,
     });
 
-    // 다음 주로 이동
     current = new Date(weekEnd);
     current.setDate(current.getDate() + 1);
   }
 
   return weeks;
 }
+
 

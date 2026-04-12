@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { logout } from "@/app/(auth)/actions";
 import { Button } from "@/components/ui/button";
+import { MemoButton } from "@/components/memo/memo-button";
 
 export async function Header() {
   const supabase = await createClient();
@@ -23,13 +24,7 @@ export async function Header() {
             >
               To-Do
             </Link>
-            <Link
-              href="/report"
-              className="text-muted-foreground hover:text-foreground text-sm transition-colors"
-            >
-              주간보고서
-            </Link>
-            <Link
+<Link
               href="/stats"
               className="text-muted-foreground hover:text-foreground text-sm transition-colors"
             >
@@ -44,6 +39,7 @@ export async function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <MemoButton />
           <span className="text-muted-foreground text-sm">{user?.email}</span>
           <form action={logout}>
             <Button variant="ghost" size="sm" type="submit">

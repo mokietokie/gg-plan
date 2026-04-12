@@ -1,5 +1,5 @@
 import type { Todo } from "@/types/todo";
-import { formatWeekRangeKR, formatDateKR, parseDate } from "@/lib/date";
+import { formatWeekRangeKR, formatDateKR, parseDate, formatMonthKR } from "@/lib/date";
 
 export type ReportInput = {
   todos: Todo[];
@@ -35,6 +35,71 @@ function todoDateLabel(todo: Todo, useCompletedAt: boolean): string {
     return formatDateKR(new Date(todo.completed_at));
   }
   return formatDateKR(parseDate(todo.date));
+}
+
+export type MonthlyReportInput = {
+  todos: Todo[];
+  nextMonthTodos: Todo[];
+  userEmail: string;
+  monthStart: Date;
+  monthEnd: Date;
+};
+
+export function generateMonthlyReport(input: MonthlyReportInput): string {
+  const { todos, nextMonthTodos, userEmail, monthStart } = input;
+
+  const completed = todos.filter((t) => t.is_completed);
+  const inProgress = todos.filter((t) => !t.is_completed);
+
+  const lines: string[] = [];
+
+  lines.push("[월간업무보고서]");
+  lines.push(`기간: ${formatMonthKR(monthStart)}`);
+  lines.push(`작성자: ${userEmail}`);
+  lines.push("");
+
+  lines.push("■ 완료 업무");
+  if (completed.length === 0) {
+    lines.push("  (없음)");
+  } else {
+    const grouped = sortedCategories(groupByCategory(completed));
+    for (const [category, items] of grouped) {
+      lines.push(`  [${category}]`);
+      for (const todo of items) {
+        lines.push(`  - ${todo.title} (${todoDateLabel(todo, true)})`);
+      }
+    }
+  }
+  lines.push("");
+
+  lines.push("■ 진행 중");
+  if (inProgress.length === 0) {
+    lines.push("  (없음)");
+  } else {
+    const grouped = sortedCategories(groupByCategory(inProgress));
+    for (const [category, items] of grouped) {
+      lines.push(`  [${category}]`);
+      for (const todo of items) {
+        lines.push(`  - ${todo.title} (${todoDateLabel(todo, false)})`);
+      }
+    }
+  }
+  lines.push("");
+
+  lines.push("■ 다음 달 계획");
+  if (nextMonthTodos.length === 0) {
+    lines.push("  (없음)");
+  } else {
+    const grouped = sortedCategories(groupByCategory(nextMonthTodos));
+    for (const [category, items] of grouped) {
+      lines.push(`  [${category}]`);
+      for (const todo of items) {
+        lines.push(`  - ${todo.title} (${todoDateLabel(todo, false)})`);
+      }
+    }
+  }
+
+  return lines.join("\n");
 }
 
 export function generateReport(input: ReportInput): string {

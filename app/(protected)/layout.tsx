@@ -3,6 +3,7 @@ import { MemoProvider } from "@/components/memo/memo-provider";
 import { MemoHotkey } from "@/components/memo/memo-hotkey";
 import { MemoPanel } from "@/components/memo/memo-panel";
 import { getMemo } from "@/app/(protected)/memos/actions";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export default async function ProtectedLayout({
   children,
@@ -16,12 +17,14 @@ export default async function ProtectedLayout({
       initialContent={memo?.content ?? ""}
       initialUpdatedAt={memo?.updated_at ?? null}
     >
-      <div className="min-h-svh">
-        <Header />
-        <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
-      </div>
-      <MemoHotkey />
-      <MemoPanel />
+      <TooltipProvider delayDuration={200}>
+        <div className="min-h-svh">
+          <Header />
+          <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
+        </div>
+        <MemoHotkey />
+        <MemoPanel />
+      </TooltipProvider>
     </MemoProvider>
   );
 }

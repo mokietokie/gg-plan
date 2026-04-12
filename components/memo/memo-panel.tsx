@@ -9,7 +9,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { XIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useMemoContext } from "./memo-provider";
 
 type PanelState = {
@@ -262,14 +261,9 @@ export function MemoPanel() {
             formatRelative(savedAt)
           )}
         </span>
-        <Button
-          type="button"
-          onClick={save}
-          disabled={!isDirty || isSaving}
-          size="sm"
-        >
-          {isSaving ? "저장 중..." : "저장"}
-        </Button>
+{isSaving && (
+          <span className="text-yellow-600 dark:text-yellow-400">저장 중...</span>
+        )}
       </div>
 
       <div

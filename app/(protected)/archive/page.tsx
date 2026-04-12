@@ -107,8 +107,9 @@ export default async function ArchivePage({
 
       {/* 아코디언 or 빈 상태 */}
       <ArchiveAccordion
+        key={`${params.q ?? ""}-${params.category ?? ""}`}
         groups={weekGroups}
-        isSearching={Boolean(params.q && params.q.trim())}
+        isFiltering={Boolean((params.q && params.q.trim()) || params.category)}
       />
     </div>
   );

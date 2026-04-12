@@ -21,10 +21,10 @@ export type DailyActivityData = {
   completed: number;
 };
 
-export type WeeklyTrendData = {
+export type WeeklyActivityData = {
   weekLabel: string; // "4/6 ~ 4/12"
-  rate: number; // 0~100
-  total: number;
+  created: number;
   completed: number;
 };
+
 
