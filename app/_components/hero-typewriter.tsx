@@ -15,7 +15,7 @@ type Segment = {
 const SEGMENTS: Segment[] = [
   { text: "어떠한 꿈이라도,", breakAfter: true },
   { text: "수첩에 적으면", className: "text-primary" },
-  { text: " 기록이 된다." },
+  { text: " 계획이 된다." },
 ];
 
 const TOTAL_CHARS = SEGMENTS.reduce((sum, s) => sum + s.text.length, 0);

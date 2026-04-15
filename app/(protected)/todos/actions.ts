@@ -107,6 +107,34 @@ export async function updateTodo(
   return null;
 }
 
+export async function moveTodo(id: string, date: string): Promise<ActionResult> {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { error: "잘못된 날짜 형식입니다." };
+  }
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "로그인이 필요합니다." };
+  }
+
+  const { error } = await supabase
+    .from("todos")
+    .update({ date })
+    .eq("id", id)
+    .eq("user_id", user.id);
+
+  if (error) {
+    return { error: "이동에 실패했습니다." };
+  }
+
+  revalidatePath("/todos");
+  return null;
+}
+
 export async function deleteTodo(formData: FormData): Promise<Todo | null> {
   const id = formData.get("id") as string;
 
